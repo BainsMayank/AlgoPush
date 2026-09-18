@@ -1,0 +1,93 @@
+{
+  "manifest_version": 3,
+  "name": "AlgoPush",
+  "version": "1.5.0",
+  "description": "Automatically sync your Accepted LeetCode, Codeforces, AtCoder and CodeChef submissions to GitHub, organized by platform and difficulty.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1tpNpGPBiNL6ndXdhROvfPskacCg7aVecWfBBefElNxc1bNEF8mtXvscBRyreEUWrlTxTq4GK3IiCXMDDS5cfgjbgbZ2SVbEm+cWzU2qClWDLbT23xM6WLbJXcqH+hqL5mq6Rkcvi8SHRBCPJYRGSVjezqwpK8AGFjYBkv3vqDlvhz0+OLJ3otzryinT41PRKZPaUrlZgyPvQ1Zo3eT+bXYfdr7Y95qTVqQKqzisTMEdtfqBpmQTpo0+SrV37he+qOgSiuV4W+lpum5n1SnrFAprS2Qk2MeZ+uY3+ntvpC/sssBYKOkNRIDdYcb4Iwnsy5XmbFDWjM8YKWFV/QV90wIDAQAB",
+  "icons": {
+    "128": "images/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "tabs",
+    "identity"
+  ],
+  "host_permissions": [
+    "*://leetcode.com/*",
+    "*://*.leetcode.com/*",
+    "*://codeforces.com/*",
+    "*://*.codeforces.com/*",
+    "*://atcoder.jp/*",
+    "*://*.atcoder.jp/*",
+    "*://codechef.com/*",
+    "*://*.codechef.com/*",
+    "*://kenkoooo.com/*",
+    "*://api.github.com/*",
+    "*://github.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://leetcode.com/*",
+        "*://*.leetcode.com/*"
+      ],
+      "js": [
+        "content-scripts/common.js",
+        "content-scripts/leetcode.js"
+      ]
+    },
+    {
+      "matches": [
+        "*://codeforces.com/*",
+        "*://*.codeforces.com/*"
+      ],
+      "js": [
+        "content-scripts/common.js",
+        "content-scripts/codeforces.js"
+      ]
+    },
+    {
+      "matches": [
+        "*://atcoder.jp/*",
+        "*://*.atcoder.jp/*"
+      ],
+      "js": [
+        "content-scripts/common.js",
+        "content-scripts/atcoder.js"
+      ]
+    },
+    {
+      "matches": [
+        "*://codechef.com/*",
+        "*://*.codechef.com/*"
+      ],
+      "js": [
+        "content-scripts/common.js",
+        "content-scripts/codechef.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content-scripts/leetcode-inject.js"
+      ],
+      "matches": [
+        "*://leetcode.com/*",
+        "*://*.leetcode.com/*"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "AlgoPush",
+    "default_icon": "images/icon128.png"
+  },
+  "options_page": "options/options.html"
+}

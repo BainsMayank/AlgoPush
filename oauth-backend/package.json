@@ -1,0 +1,13 @@
+{
+  "name": "algopush-cf-oauth-backend",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node test/exchange.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  },
+  "type": "module"
+}

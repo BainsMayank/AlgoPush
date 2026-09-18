@@ -1,0 +1,16 @@
+name = "algopush-cf-oauth"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Optional but recommended. Without a KV binding the exchange endpoint's rate
+# limit degrades to a per-isolate counter, which a distributed caller can walk
+# straight past. Create the namespace and paste its id here:
+#
+#   npx wrangler kv namespace create RATE_LIMIT_KV
+#
+# [[kv_namespaces]]
+# binding = "RATE_LIMIT_KV"
+# id = "<paste the id wrangler prints>"
+
+[observability]
+enabled = true

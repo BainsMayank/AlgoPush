@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>AlgoPush Settings</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="container">
+        <h1>AlgoPush Configuration <small id="extensionVersion"></small></h1>
+
+        <div class="card onboarding">
+            <h2>Getting Started</h2>
+            <ol>
+                <li>Click <strong>Connect GitHub Account</strong> below, approve on GitHub, and pick or create a repo.</li>
+                <li>Click <strong>Connect Codeforces Account</strong> to verify your handle via Codeforces' own login.</li>
+                <li>Click <strong>Connect LeetCode Account</strong> to confirm your LeetCode username from your signed-in session.</li>
+                <li>Click <strong>Connect AtCoder Account</strong> to confirm your AtCoder handle from your signed-in session.</li>
+                <li>Click <strong>Connect CodeChef Account</strong> to confirm your CodeChef username from your signed-in session.</li>
+                <li>Click <strong>Sync Old Submissions</strong> to import everything you've already solved.</li>
+                <li>Solve a new problem to confirm live sync works — it pushes automatically the moment a submission is Accepted.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>GitHub Connection</h2>
+            <p class="field-hint" style="margin-bottom: 12px;">
+                One-click connect via a GitHub App — no token to generate or paste. You choose exactly which repo(s) to grant access to on GitHub's own install screen.
+            </p>
+
+            <div id="ghConnectedPanel" class="cf-account-panel" style="display: none;">
+                <img id="ghAvatar" class="cf-avatar" alt="">
+                <div class="cf-account-info">
+                    <div id="ghConnectedUser" class="cf-handle"></div>
+                    <div class="field-hint">Connected via GitHub App</div>
+                </div>
+                <button id="ghDisconnectBtn" class="btn secondary">Disconnect</button>
+            </div>
+
+            <div id="ghConnectSetup">
+                <button id="ghConnectBtn" class="btn primary">Connect GitHub Account</button>
+                <span id="ghConnectStatus" class="status-msg"></span>
+                <div id="ghDeviceCodePanel" style="display: none; margin-top: 12px;">
+                    <p style="margin-bottom: 4px;">Enter this code at <a id="ghVerificationLink" href="#" target="_blank" rel="noopener">github.com/login/device</a> (opened automatically):</p>
+                    <p id="ghUserCode" style="font-size: 24px; font-weight: 700; letter-spacing: 3px; margin: 4px 0;"></p>
+                </div>
+            </div>
+
+            <div class="form-group" id="githubRepoPickerGroup" style="display: none; margin-top: 16px;">
+                <label for="githubRepoSelect">Repository:</label>
+                <select id="githubRepoSelect"></select>
+                <p class="field-hint">Only repos you installed the AlgoPush GitHub App on appear here.</p>
+            </div>
+
+            <div class="form-group" id="githubCreateRepoGroup" style="display: none;">
+                <label for="newRepoName">Or create a new repository for your solutions:</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="newRepoName" placeholder="e.g. algorithm-solutions" style="flex: 1;">
+                    <button id="createRepoBtn" class="btn secondary" type="button">Create</button>
+                </div>
+                <span id="createRepoStatus" class="status-msg"></span>
+            </div>
+
+            <button id="testBtn" class="btn secondary" style="margin-top: 12px;">Test Connection</button>
+            <span id="testStatus" class="status-msg"></span>
+        </div>
+
+        <div class="card">
+            <h2>Codeforces Account</h2>
+            <p class="field-hint" style="margin-bottom: 12px;">
+                Verifies which Codeforces handle you own via Codeforces' own <a href="https://codeforces.com/blog/entry/145566" target="_blank" rel="noopener">OpenID Connect login</a> — your Codeforces password never touches this extension. This only confirms your identity; AlgoPush still reads your submissions from your normal logged-in browser session.
+            </p>
+
+            <div id="cfConnectedPanel" class="cf-account-panel" style="display: none;">
+                <img id="cfAvatar" class="cf-avatar" alt="">
+                <div class="cf-account-info">
+                    <div id="cfConnectedHandle" class="cf-handle"></div>
+                    <div id="cfConnectedRating" class="field-hint"></div>
+                </div>
+                <button id="cfDisconnectBtn" class="btn secondary">Disconnect</button>
+            </div>
+
+            <div id="cfSetupPanel">
+                <button id="cfConnectBtn" class="btn primary">Connect Codeforces Account</button>
+                <span id="cfConnectStatus" class="status-msg"></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>LeetCode Account</h2>
+            <p class="field-hint" style="margin-bottom: 12px;">
+                Confirms which LeetCode account this browser is signed in as, asked of LeetCode directly &mdash; your LeetCode password never touches this extension. LeetCode publishes no OAuth login for third-party apps, so there is no redirect to approve: click Connect and it verifies your signed-in session. If you are not signed in yet, LeetCode's own sign-in page opens and the connection completes by itself the moment you finish.
+            </p>
+
+            <div id="lcConnectedPanel" class="cf-account-panel" style="display: none;">
+                <img id="lcAvatar" class="cf-avatar" alt="">
+                <div class="cf-account-info">
+                    <div id="lcConnectedUser" class="cf-handle"></div>
+                    <div id="lcConnectedRanking" class="field-hint"></div>
+                </div>
+                <button id="lcDisconnectBtn" class="btn secondary">Disconnect</button>
+            </div>
+
+            <div id="lcSetupPanel">
+                <button id="lcConnectBtn" class="btn primary">Connect LeetCode Account</button>
+                <span id="lcConnectStatus" class="status-msg"></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>AtCoder Account</h2>
+            <p class="field-hint" style="margin-bottom: 12px;">
+                Confirms which AtCoder account this browser is signed in as, asked of AtCoder directly &mdash; your AtCoder password never touches this extension. AtCoder publishes no OAuth login for third-party apps, so there is no redirect to approve: click Connect and it verifies your signed-in session. If you are not signed in yet, AtCoder's own sign-in page opens and the connection completes by itself the moment you finish.
+            </p>
+
+            <div id="acConnectedPanel" class="cf-account-panel" style="display: none;">
+                <img id="acAvatar" class="cf-avatar" alt="">
+                <div class="cf-account-info">
+                    <div id="acConnectedUser" class="cf-handle"></div>
+                    <div id="acConnectedRating" class="field-hint"></div>
+                </div>
+                <button id="acDisconnectBtn" class="btn secondary">Disconnect</button>
+            </div>
+
+            <div id="acSetupPanel">
+                <button id="acConnectBtn" class="btn primary">Connect AtCoder Account</button>
+                <span id="acConnectStatus" class="status-msg"></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>CodeChef Account</h2>
+            <p class="field-hint" style="margin-bottom: 12px;">
+                Confirms which CodeChef account this browser is signed in as, asked of CodeChef directly &mdash; your CodeChef password never touches this extension. CodeChef publishes no OAuth login for third-party apps, so there is no redirect to approve: click Connect and it verifies your signed-in session. If you are not signed in yet, CodeChef's own sign-in page opens and the connection completes by itself the moment you finish.
+            </p>
+
+            <div id="ccConnectedPanel" class="cf-account-panel" style="display: none;">
+                <img id="ccAvatar" class="cf-avatar" alt="">
+                <div class="cf-account-info">
+                    <div id="ccConnectedUser" class="cf-handle"></div>
+                    <div id="ccConnectedRating" class="field-hint"></div>
+                </div>
+                <button id="ccDisconnectBtn" class="btn secondary">Disconnect</button>
+            </div>
+
+            <div id="ccSetupPanel">
+                <button id="ccConnectBtn" class="btn primary">Connect CodeChef Account</button>
+                <span id="ccConnectStatus" class="status-msg"></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Platforms</h2>
+            <label class="checkbox-container">
+                <input type="checkbox" id="enableLeetCode" checked>
+                <span class="checkmark"></span>
+                Enable LeetCode Sync
+            </label>
+            <label class="checkbox-container">
+                <input type="checkbox" id="enableCodeforces" checked>
+                <span class="checkmark"></span>
+                Enable Codeforces Sync
+            </label>
+            <label class="checkbox-container">
+                <input type="checkbox" id="enableAtCoder" checked>
+                <span class="checkmark"></span>
+                Enable AtCoder Sync
+            </label>
+            <label class="checkbox-container">
+                <input type="checkbox" id="enableCodeChef" checked>
+                <span class="checkmark"></span>
+                Enable CodeChef Sync
+            </label>
+            <button id="saveBtn" class="btn primary" style="margin-top: 8px;">Save</button>
+            <span id="saveStatus" class="status-msg"></span>
+        </div>
+
+        <div class="card">
+            <h2>Historical Sync</h2>
+            <p style="font-size: 13px; color: var(--secondary-color); margin-bottom: 12px;">
+                Imports everything you've already solved, using your connections above — nothing to type in. The Codeforces import opens a single background tab on codeforces.com and reads each solution through the same request the site's own &ldquo;source&rdquo; button uses, so no extra tabs appear and nothing is hammered. If Codeforces runs a verification check, the sync pauses, clears it (bringing the tab forward only if it needs you), and carries on. The LeetCode import works the same way, through your signed-in leetcode.com session. The AtCoder import lists what you have solved from the public <a href="https://kenkoooo.com/atcoder/" target="_blank" rel="noopener">AtCoder Problems</a> dataset &mdash; which is also where the difficulty estimates your solutions are filed under come from, since AtCoder publishes neither &mdash; and then reads each solution from your own signed-in atcoder.jp session. The CodeChef import walks your own submission history from your signed-in codechef.com session and reads each solution through the same endpoint the site's own &ldquo;View solution&rdquo; page uses. All four runs are resumable: anything already pushed is skipped, so you can stop and re-run any time, and the solution index at the root of your repo is written once per run rather than after every submission.
+            </p>
+            <button id="syncHistoryBtn" class="btn secondary" disabled>Sync Old Codeforces Submissions</button>
+            <span id="historicalStatus" class="status-msg"></span>
+            <div id="cfHistoryProgress" class="progress" style="display: none;"><div id="cfHistoryProgressBar"></div></div>
+            <br><br>
+            <button id="syncLeetCodeHistoryBtn" class="btn secondary" disabled>Sync Old LeetCode Submissions</button>
+            <span id="leetcodeHistoricalStatus" class="status-msg"></span>
+            <div id="lcHistoryProgress" class="progress" style="display: none;"><div id="lcHistoryProgressBar"></div></div>
+            <br><br>
+            <button id="syncAtCoderHistoryBtn" class="btn secondary" disabled>Sync Old AtCoder Submissions</button>
+            <span id="atcoderHistoricalStatus" class="status-msg"></span>
+            <div id="acHistoryProgress" class="progress" style="display: none;"><div id="acHistoryProgressBar"></div></div>
+            <br><br>
+            <button id="syncCodeChefHistoryBtn" class="btn secondary" disabled>Sync Old CodeChef Submissions</button>
+            <span id="codechefHistoricalStatus" class="status-msg"></span>
+            <div id="ccHistoryProgress" class="progress" style="display: none;"><div id="ccHistoryProgressBar"></div></div>
+        </div>
+
+        <div class="card">
+            <h2>Privacy</h2>
+            <p style="font-size: 13px; color: var(--secondary-color); margin-bottom: 12px;">
+                Clears your GitHub, Codeforces, LeetCode, AtCoder, and CodeChef connections and local sync history from this browser. This does not delete anything already pushed to GitHub, and does not uninstall the GitHub App (do that from GitHub's own settings).
+            </p>
+            <button id="clearDataBtn" class="btn secondary">Clear Saved Data</button>
+            <span id="clearStatus" class="status-msg"></span>
+        </div>
+    </div>
+    <script type="module" src="options.js"></script>
+</body>
+</html>

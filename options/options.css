@@ -1,0 +1,285 @@
+:root {
+    --bg-color: #ffffff;
+    --card-bg: #f8f9fa;
+    --text-color: #333333;
+    --border-color: #e0e0e0;
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --secondary-color: #6c757d;
+    --secondary-hover: #5a6268;
+    --success-color: #28a745;
+    --error-color: #dc3545;
+    --info-color: #17a2b8;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #1e1e1e;
+        --card-bg: #2d2d2d;
+        --text-color: #e0e0e0;
+        --border-color: #444444;
+        --primary-color: #3a86ff;
+        --primary-hover: #266bde;
+        --secondary-color: #555555;
+        --secondary-hover: #777777;
+    }
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+h2 {
+    font-size: 18px;
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: var(--text-color);
+}
+
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn.primary {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+.btn.primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn.secondary {
+    background-color: var(--secondary-color);
+    color: #fff;
+}
+
+.btn.secondary:hover {
+    background-color: var(--secondary-hover);
+}
+
+.status-msg {
+    display: inline-block;
+    margin-left: 12px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.status-msg.success { color: var(--success-color); }
+.status-msg.error { color: var(--error-color); }
+.status-msg.info { color: var(--info-color); }
+
+.checkbox-container {
+    display: block;
+    position: relative;
+    padding-left: 28px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    font-size: 15px;
+    user-select: none;
+}
+
+.checkbox-container input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    height: 18px;
+    width: 18px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+}
+
+.checkbox-container:hover input ~ .checkmark {
+    background-color: var(--border-color);
+}
+
+.checkbox-container input:checked ~ .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.checkbox-container .checkmark:after {
+    left: 6px;
+    top: 2px;
+    width: 4px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+}
+
+.card.onboarding {
+    border-color: var(--primary-color);
+    background-color: color-mix(in srgb, var(--primary-color) 8%, var(--card-bg));
+}
+
+.card.onboarding ol {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.card.onboarding li {
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.card.onboarding a {
+    color: var(--primary-color);
+}
+
+.field-hint {
+    font-size: 12px;
+    color: var(--secondary-color);
+    margin: 6px 0 0 0;
+}
+
+.field-hint code,
+p code {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    padding: 1px 5px;
+    word-break: break-all;
+}
+
+.cf-account-panel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--bg-color);
+}
+
+.cf-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: var(--border-color);
+}
+
+.cf-account-info {
+    flex: 1;
+}
+
+.cf-handle {
+    font-weight: 600;
+}
+
+.cf-account-panel .btn {
+    margin-left: auto;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+/* Historical-import progress bar */
+.progress {
+    margin-top: 10px;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(127, 127, 127, 0.22);
+    overflow: hidden;
+}
+
+.progress > div {
+    height: 100%;
+    width: 0;
+    border-radius: 3px;
+    background: var(--info-color);
+    transition: width 0.25s ease;
+}

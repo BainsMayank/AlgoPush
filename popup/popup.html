@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>AlgoPush</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="header">
+        <h1>AlgoPush</h1>
+        <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
+    </div>
+    
+    <div class="status-panel">
+        <div class="status-indicator" id="statusDot"></div>
+        <span id="connectionStatus">Checking connection...</span>
+    </div>
+
+    <div id="errorBanner" class="error-banner" style="display:none;">
+        <span id="errorBannerText"></span>
+        <button id="dismissErrorBtn" class="icon-btn" title="Dismiss">✕</button>
+    </div>
+
+    <div class="history-container">
+        <h3>Recent Syncs</h3>
+        <ul id="historyList">
+            <li class="empty-state">No recent syncs found.</li>
+        </ul>
+    </div>
+
+    <p class="auto-sync-note">Syncing happens automatically the moment a submission is Accepted — nothing to trigger manually.</p>
+    <button id="refreshBtn" class="btn primary full-width">Refresh Status</button>
+    
+    <script type="module" src="popup.js"></script>
+</body>
+</html>
