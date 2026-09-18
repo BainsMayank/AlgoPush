@@ -1,36 +1,186 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <title>AlgoPush</title>
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <div class="header">
-        <h1>AlgoPush</h1>
-        <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
-    </div>
-    
-    <div class="status-panel">
-        <div class="status-indicator" id="statusDot"></div>
-        <span id="connectionStatus">Checking connection...</span>
-    </div>
+    <svg class="sprite" aria-hidden="true" focusable="false">
+        <symbol id="i-gear" viewBox="0 0 16 16">
+            <path d="M2 4.5h3.2M8.8 4.5H14M2 11.5h5.2M10.8 11.5H14"/>
+            <circle cx="7" cy="4.5" r="1.8"/>
+            <circle cx="9" cy="11.5" r="1.8"/>
+        </symbol>
+        <symbol id="i-out" viewBox="0 0 16 16">
+            <path d="M6.5 3H3.4A1.4 1.4 0 0 0 2 4.4v8.2A1.4 1.4 0 0 0 3.4 14h8.2a1.4 1.4 0 0 0 1.4-1.4V9.5"/>
+            <path d="M9.5 2H14v4.5M14 2 7.6 8.4"/>
+        </symbol>
+        <symbol id="i-back" viewBox="0 0 16 16">
+            <path d="M9.8 3.4 5.2 8l4.6 4.6"/>
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 16 16">
+            <path d="m4 4 8 8M12 4l-8 8"/>
+        </symbol>
+    </svg>
 
-    <div id="errorBanner" class="error-banner" style="display:none;">
-        <span id="errorBannerText"></span>
-        <button id="dismissErrorBtn" class="icon-btn" title="Dismiss">✕</button>
-    </div>
+    <div class="rail" aria-hidden="true"><span class="rail-fill" id="railFill"></span></div>
 
-    <div class="history-container">
-        <h3>Recent Syncs</h3>
-        <ul id="historyList">
-            <li class="empty-state">No recent syncs found.</li>
-        </ul>
-    </div>
+    <!-- ── ENTRY ─────────────────────────────────────────────────────── -->
+    <section class="screen screen--entry" id="screenEntry" hidden>
+        <div class="entry-frame">
+            <blockquote class="entry-quote">
+                <p>Talk is cheap.<br>Show me<br>the code.</p>
+                <cite>Linus Torvalds</cite>
+            </blockquote>
+            <div class="entry-foot">
+                <p class="entry-promise">So AlgoPush shows it for you. Every Accepted submission,
+                    written to your own repository the moment the judge says so.</p>
+                <button class="btn btn--primary" id="beginBtn" type="button">Begin setup</button>
+            </div>
+        </div>
+    </section>
 
-    <p class="auto-sync-note">Syncing happens automatically the moment a submission is Accepted — nothing to trigger manually.</p>
-    <button id="refreshBtn" class="btn primary full-width">Refresh Status</button>
-    
+    <!-- ── STEP 1 · GITHUB ───────────────────────────────────────────── -->
+    <section class="screen" id="screenGithub" hidden>
+        <header class="step-head">
+            <h1 class="step-title">Connect GitHub</h1>
+            <p class="step-note">AlgoPush installs as a GitHub App. GitHub gives you a short
+                code to enter on its own screen, then you choose the exact repository
+                AlgoPush may write to. There is no access token to generate.</p>
+            <p class="step-count"><span>Step 1</span> / 3</p>
+        </header>
+
+        <div class="panel" id="ghSetup">
+            <button class="btn btn--primary" id="ghConnectBtn" type="button">Connect GitHub account</button>
+            <div class="devicecode" id="ghDevicePanel" hidden>
+                <p class="devicecode-lead">Enter this code at
+                    <a id="ghVerificationLink" href="#" target="_blank" rel="noopener">github.com/login/device</a></p>
+                <p class="devicecode-value" id="ghUserCode"></p>
+            </div>
+        </div>
+
+        <div class="panel" id="ghConnected" hidden>
+            <div class="idrow">
+                <img class="idrow-avatar" id="ghAvatar" src="../images/icon128.png" alt="">
+                <div class="idrow-text">
+                    <p class="idrow-name" id="ghLogin"></p>
+                    <p class="idrow-meta">Connected via GitHub App</p>
+                </div>
+                <button class="btn btn--ghost" id="ghDisconnectBtn" type="button">Disconnect</button>
+            </div>
+
+            <div class="field" id="ghRepoField" hidden>
+                <label class="field-label" for="ghRepoSelect">Destination repository</label>
+                <select class="select" id="ghRepoSelect"></select>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="ghNewRepo">Or create a new one</label>
+                <div class="field-row">
+                    <input class="input" type="text" id="ghNewRepo" placeholder="algorithm-solutions"
+                           spellcheck="false" autocomplete="off">
+                    <button class="btn btn--ghost" id="ghCreateBtn" type="button">Create</button>
+                </div>
+            </div>
+        </div>
+
+        <p class="status" id="ghStatus" role="status"></p>
+
+        <div class="step-actions">
+            <button class="btn btn--primary" id="ghNextBtn" type="button" disabled>Choose your judges</button>
+        </div>
+    </section>
+
+    <!-- ── STEP 2 · LINES ────────────────────────────────────────────── -->
+    <section class="screen" id="screenLines" hidden>
+        <header class="step-head">
+            <h1 class="step-title">Where do you solve?</h1>
+            <p class="step-note">Only the ones you pick are watched, and only those ask you to
+                sign in. You can change this later.</p>
+            <p class="step-count"><span>Step 2</span> / 3</p>
+        </header>
+
+        <fieldset class="lines" id="linePicker">
+            <legend class="sr-only">Judges to watch</legend>
+        </fieldset>
+
+        <p class="status" id="linesStatus" role="status"></p>
+
+        <div class="step-actions">
+            <button class="btn btn--ghost" id="linesBackBtn" type="button">
+                <svg class="icon" aria-hidden="true"><use href="#i-back"/></svg>Back
+            </button>
+            <button class="btn btn--primary" id="linesNextBtn" type="button" disabled>Connect them</button>
+        </div>
+    </section>
+
+    <!-- ── STEP 3 · SIGN IN ──────────────────────────────────────────── -->
+    <section class="screen" id="screenConnect" hidden>
+        <header class="step-head">
+            <h1 class="step-title">Verify each account</h1>
+            <p class="step-note">Each judge asks in its own words — your passwords never reach
+                this extension. AlgoPush only confirms which handle is yours.</p>
+            <p class="step-count"><span>Step 3</span> / 3</p>
+        </header>
+
+        <ul class="connlist" id="connectList"></ul>
+
+        <div class="step-actions">
+            <button class="btn btn--ghost" id="connectBackBtn" type="button">
+                <svg class="icon" aria-hidden="true"><use href="#i-back"/></svg>Back
+            </button>
+            <button class="btn btn--primary" id="finishBtn" type="button">Open the board</button>
+        </div>
+    </section>
+
+    <!-- ── BOARD ─────────────────────────────────────────────────────── -->
+    <section class="screen screen--board" id="screenBoard" hidden>
+        <header class="board-head">
+            <h1 class="wordmark">AlgoPush</h1>
+            <button class="iconbtn" id="settingsBtn" type="button" title="Settings" aria-label="Settings">
+                <svg class="icon" aria-hidden="true"><use href="#i-gear"/></svg>
+            </button>
+        </header>
+
+        <p class="service" id="serviceLine">
+            <span class="mark" data-state="idle" id="serviceMark" aria-hidden="true"></span>
+            <span class="service-state" id="serviceState">Checking</span>
+        </p>
+
+        <div class="alert" id="alert" hidden>
+            <p class="alert-body" id="alertText"></p>
+            <button class="iconbtn iconbtn--alert" id="alertDismiss" type="button" aria-label="Dismiss">
+                <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>
+            </button>
+        </div>
+
+        <div class="tally">
+            <p class="tally-count" id="tallyCount">0</p>
+            <p class="tally-label" id="tallyLabel">solutions on record</p>
+        </div>
+
+        <section class="block" id="runBlock">
+            <h2 class="block-title" id="runTitle">Daily run</h2>
+            <div class="pad" id="streakPad" role="img" aria-label="Solving activity, last 28 days"></div>
+        </section>
+
+        <section class="block" id="judgeBlock">
+            <h2 class="block-title">By judge</h2>
+            <ul class="tallylist" id="tallyList"></ul>
+        </section>
+
+        <section class="block" id="arrivalsBlock">
+            <h2 class="block-title" id="arrivalsTitle">Latest arrivals</h2>
+            <ul class="arrivals" id="arrivals"></ul>
+        </section>
+
+        <a class="repolink" id="repoLink" href="#" target="_blank" rel="noopener" hidden>
+            <span id="repoName"></span>
+            <svg class="icon" aria-hidden="true"><use href="#i-out"/></svg>
+        </a>
+    </section>
+
     <script type="module" src="popup.js"></script>
 </body>
 </html>

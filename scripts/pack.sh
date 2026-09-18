@@ -30,6 +30,7 @@ PAYLOAD=(
     popup
     shared
     images
+    fonts
 )
 
 for item in "${PAYLOAD[@]}"; do
