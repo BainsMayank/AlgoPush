@@ -1,0 +1,19 @@
+{
+  "name": "algopush",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "icons": "node marketing/icon.mjs",
+    "shots": "node marketing/capture-popup.mjs",
+    "store": "node marketing/capture-popup.mjs && node marketing/render.mjs",
+    "store:render": "node marketing/render.mjs",
+    "test:live": "node tests/live-sync-leetcode.mjs && node tests/live-sync-judges.mjs",
+    "test": "node tests/unit.test.mjs && node social-backend/test/social.test.mjs",
+    "test:unit": "node tests/unit.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1",
+    "sharp": "^0.34.5"
+  }
+}

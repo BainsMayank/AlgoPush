@@ -1,5 +1,9 @@
 import { pushFileToRepo, deleteFileFromRepo, resolveBranch } from '../shared/github.js';
 import { getEffectiveGithubToken } from '../shared/github-auth.js';
+import { shareSubmission, shareIfBehind, markShareBehind, localDay, fetchOwnSubmissions, getSocialState } from '../shared/social.js';
+import { SOCIAL_ALARM, ensureSocialAlarm, checkSocial, onNotificationClicked, notifyMilestone } from './social-alerts.js';
+import { parseRootReadme, mergeIntoIndex, entryFromShared } from '../shared/index-restore.js';
+import { takeNewMilestones } from '../shared/milestones.js';
 import { getAtCoderCatalog, describeProblem, parseAtCoderSlug, AC_SUBMISSIONS_URL } from '../shared/atcoder-catalog.js';
 import {
     describeCodeChefProblem, difficultyBand as codechefDifficultyBand,
@@ -20,7 +24,10 @@ chrome.runtime.onInstalled.addListener((details) => {
     ensureCatchUpAlarm();
     ensureAtCoderCatchUpAlarm();
     ensureCodeChefCatchUpAlarm();
+    ensureSocialAlarm();
 });
+
+chrome.notifications.onClicked.addListener(onNotificationClicked);
 
 /**
  * Derives a common file extension from the language string.
@@ -264,13 +271,108 @@ async function getBranch(token, owner, repo) {
  * Regenerates and pushes the root README.md from the full local index of
  * synced problems.
  */
-async function updateRootReadme(token, owner, repo, branch, problemsIndex) {
+/**
+ * Rewrites the root README from the local index. Refuses to run until the
+ * index has been reconciled with the README already in this repository (see
+ * restoreIndexFromRepo): an install with an empty or partial index — fresh
+ * after a reinstall — would otherwise overwrite the whole solution index with
+ * whatever little it knows.
+ */
+async function updateRootReadme(token, owner, repo, branch) {
+    await restoreIndexFromRepo(token, owner, repo, branch);
+    const { syncedProblemsIndex = {} } = await chrome.storage.local.get('syncedProblemsIndex');
     await pushFileToRepo({
         token, owner, repo, branch,
         path: 'README.md',
-        content: buildRootReadmeContent(problemsIndex),
+        content: buildRootReadmeContent(syncedProblemsIndex),
         commitMessage: 'Docs: Update solution index'
     });
+}
+
+/* ==================================================================== *
+ * Restoring the index
+ *
+ * syncedProblemsIndex lives only in chrome.storage.local, so uninstalling
+ * the extension loses it — but the repository's root README carries the same
+ * records (title, link, difficulty, folder, date, topics), and a profile's
+ * shared solves carry them again with exact keys and live-solve stamps. Both
+ * are merged back in without ever overwriting what the index already holds.
+ *
+ * Every caller runs inside syncQueue, so a restore can never interleave with
+ * a submission's own read-modify-write of the index.
+ * ==================================================================== */
+
+const INDEX_RESTORED_KEY = 'indexRestoredFor';
+
+async function fetchRootReadme(token, owner, repo, branch) {
+    const response = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents/README.md?ref=${encodeURIComponent(branch)}`,
+        { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.raw+json' } }
+    );
+    // No README yet: nothing was ever indexed here, so nothing can be lost.
+    if (response.status === 404) return '';
+    if (!response.ok) {
+        throw new Error(`Could not read the solution index from ${owner}/${repo} (HTTP ${response.status}), so it was left as it is.`);
+    }
+    return response.text();
+}
+
+/** Once per repository: folds the repo's README index into the local one. */
+async function restoreIndexFromRepo(token, owner, repo, branch) {
+    const target = `${owner}/${repo}`;
+    const { [INDEX_RESTORED_KEY]: restoredFor } = await chrome.storage.local.get(INDEX_RESTORED_KEY);
+    if (restoredFor === target) return { added: 0, skipped: true };
+
+    const restored = parseRootReadme(await fetchRootReadme(token, owner, repo, branch));
+    const { syncedProblemsIndex = {} } = await chrome.storage.local.get('syncedProblemsIndex');
+    const added = mergeIntoIndex(syncedProblemsIndex, restored);
+    await chrome.storage.local.set({ syncedProblemsIndex, [INDEX_RESTORED_KEY]: target });
+    if (added) console.log(`AlgoPush: restored ${added} solved problems from the ${target} README.`);
+    return { added };
+}
+
+/** Folds the profile's shared solves into the local index. Quiet when signed out. */
+async function restoreIndexFromProfile() {
+    const { signedIn, profile } = await getSocialState();
+    if (!signedIn || !profile || !profile.sharing) return { added: 0 };
+
+    const incoming = {};
+    for (const solve of await fetchOwnSubmissions()) incoming[solve.key] = entryFromShared(solve);
+
+    const { syncedProblemsIndex = {} } = await chrome.storage.local.get('syncedProblemsIndex');
+    const added = mergeIntoIndex(syncedProblemsIndex, incoming);
+    await chrome.storage.local.set({ syncedProblemsIndex });
+    // Anything the README was missing goes back into it on the next flush.
+    if (added) await markReadmeIndexDirty();
+    return { added };
+}
+
+async function restoreIndex() {
+    let added = 0;
+    const errors = [];
+    const token = await getEffectiveGithubToken();
+    const { githubRepo } = await chrome.storage.local.get('githubRepo');
+    const [owner, repo] = (githubRepo || '').split('/');
+
+    if (token && owner && repo) {
+        try {
+            added += (await restoreIndexFromRepo(token, owner, repo, await getBranch(token, owner, repo))).added;
+        } catch (error) {
+            errors.push(error.message || String(error));
+        }
+    }
+    try {
+        added += (await restoreIndexFromProfile()).added;
+    } catch (error) {
+        errors.push(error.message || String(error));
+    }
+    return { ok: errors.length === 0, added, error: errors[0] || null };
+}
+
+function enqueueRestoreIndex() {
+    const run = syncQueue.then(restoreIndex);
+    syncQueue = run.catch(() => {});
+    return run;
 }
 
 /* ==================================================================== *
@@ -372,8 +474,7 @@ async function markReadmeIndexDirty() {
  * Returns { skipped: true } when there was nothing to do.
  */
 async function flushRootReadme({ force = false } = {}) {
-    const { readmeIndexDirty, syncedProblemsIndex = {}, githubRepo } =
-        await chrome.storage.local.get(['readmeIndexDirty', 'syncedProblemsIndex', 'githubRepo']);
+    const { readmeIndexDirty, githubRepo } = await chrome.storage.local.get(['readmeIndexDirty', 'githubRepo']);
 
     if (!force && !readmeIndexDirty) return { ok: true, skipped: true };
 
@@ -384,7 +485,7 @@ async function flushRootReadme({ force = false } = {}) {
     }
 
     const branch = await getBranch(token, owner, repo);
-    await updateRootReadme(token, owner, repo, branch, syncedProblemsIndex);
+    await updateRootReadme(token, owner, repo, branch);
 
     await chrome.storage.local.set({ readmeIndexDirty: false });
     await chrome.alarms.clear(README_FLUSH_ALARM);
@@ -403,17 +504,38 @@ function enqueueReadmeFlush() {
     return syncQueue;
 }
 
+/**
+ * Friends see solves through the optional profile service. It is kept apart
+ * from syncQueue on purpose: GitHub is the product, and a slow or unreachable
+ * friends service must never hold a push up. One upload at a time is enough
+ * — every upload is an idempotent upsert of the whole index.
+ */
+let socialCatchUp = null;
+
+function enqueueSocialCatchUp() {
+    if (!socialCatchUp) {
+        socialCatchUp = shareIfBehind().finally(() => { socialCatchUp = null; });
+    }
+    return socialCatchUp;
+}
+
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === README_FLUSH_ALARM) enqueueReadmeFlush();
+    if (alarm.name === README_FLUSH_ALARM) {
+        enqueueReadmeFlush();
+        enqueueSocialCatchUp();
+    }
     if (alarm.name === CF_CATCHUP_ALARM) enqueueCodeforcesCatchUp();
     if (alarm.name === AC_CATCHUP_ALARM) enqueueAtCoderCatchUp();
     if (alarm.name === CC_CATCHUP_ALARM) enqueueCodeChefCatchUp();
+    if (alarm.name === SOCIAL_ALARM) checkSocial();
 });
 
 // An import interrupted by a browser restart still owes the repo an index,
 // and a submission made while the browser was closed still owes a push.
 chrome.runtime.onStartup.addListener(() => {
     enqueueReadmeFlush();
+    enqueueSocialCatchUp();
+    checkSocial();
     enqueueCodeforcesCatchUp();
     enqueueAtCoderCatchUp();
     enqueueCodeChefCatchUp();
@@ -510,7 +632,10 @@ async function runCodeforcesCatchUp() {
             title: sub.problem.name,
             difficulty: sub.problem.rating ? sub.problem.rating.toString() : 'Unknown',
             tags: sub.problem.tags || [],
-            programmingLanguage: sub.programmingLanguage
+            programmingLanguage: sub.programmingLanguage,
+            // Drained later, possibly much later: the day and duel timing
+            // must come from when Codeforces judged it, not from the drain.
+            judgedAt: sub.creationTimeSeconds ? sub.creationTimeSeconds * 1000 : null
         });
     }
 
@@ -816,12 +941,33 @@ async function ensureCodeChefCatchUpAlarm() {
 }
 
 ensureCodeChefCatchUpAlarm();
+ensureSocialAlarm();
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Explicit end-of-import flush: write the coalesced solution index now
     // rather than waiting for the safety-net alarm.
+    // A new profile, or sharing switched back on: upload the whole index.
+    // After a sign-in, take back what the profile shared before uploading,
+    // so a reinstalled extension gets its history back rather than starting
+    // from nothing.
+    if (request.type === 'SOCIAL_RESYNC') {
+        const restored = request.restore ? enqueueRestoreIndex().catch(() => null) : Promise.resolve(null);
+        restored
+            .then(() => enqueueSocialCatchUp())
+            .then(() => restored)
+            .then((result) => sendResponse({ ok: true, restored: result }));
+        return true;
+    }
+
+    // The popup asks once per repository; a no-op when already done.
+    if (request.type === 'RESTORE_INDEX') {
+        enqueueRestoreIndex().then(sendResponse, (error) => sendResponse({ ok: false, error: error.message || String(error) }));
+        return true;
+    }
+
     if (request.type === 'FLUSH_README_INDEX') {
+        enqueueSocialCatchUp();
         syncQueue = syncQueue.then(async () => {
             try {
                 const result = await flushRootReadme({ force: Boolean(request.force) });
@@ -919,6 +1065,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 console.log(`AlgoPush: Processing accepted submission for ${data.title}`);
 
+                // First push since the index was lost: take back what the
+                // repository already records, so this problem's prior folder
+                // and difficulty are known. A failure here is retried by
+                // updateRootReadme, which will not write until it succeeds.
+                await restoreIndexFromRepo(githubToken, owner, repo, branch).catch((error) => {
+                    console.warn('AlgoPush: could not read the existing solution index yet.', error);
+                });
+
                 // 1. Normalize payload & Build File Paths
                 const indexKey = `${data.platform}:${data.slug}`;
                 const { syncedProblemsIndex: existingIndex = {} } = await chrome.storage.local.get('syncedProblemsIndex');
@@ -1011,6 +1165,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 // concurrent edit must not turn an already-committed source
                 // file and problem README into a reported sync failure.
                 let indexWarning = null;
+                let indexEntry = null;
+                // The judge's own timestamp, when the path that brought this
+                // submission had one (imports, the Codeforces catch-up). A
+                // live sync without one happened just now.
+                const judgedAt = Number.isFinite(data.judgedAt) && data.judgedAt > 0
+                    && data.judgedAt <= Date.now() + 60 * 1000 ? data.judgedAt : null;
                 try {
                     const { syncedProblemsIndex = {} } = await chrome.storage.local.get('syncedProblemsIndex');
                     syncedProblemsIndex[indexKey] = {
@@ -1023,8 +1183,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         // Remembered so a later re-solve in another language
                         // knows which file it is replacing (see step 4).
                         solutionPath,
-                        date: new Date().toISOString().split('T')[0]
+                        // The *local* day it was solved, which is what every
+                        // streak is counted in. An import with no judge time
+                        // keeps the day already on record rather than
+                        // claiming today.
+                        date: judgedAt
+                            ? localDay(new Date(judgedAt))
+                            : (data.deferIndexUpdate && priorEntry && priorEntry.date) || localDay(),
+                        // Only a live solve is stamped; duels count nothing
+                        // else, so importing history mid-duel changes nothing.
+                        solvedAt: data.deferIndexUpdate
+                            ? (priorEntry && priorEntry.solvedAt) || null
+                            : judgedAt || Date.now()
                     };
+                    indexEntry = syncedProblemsIndex[indexKey];
                     await chrome.storage.local.set({ syncedProblemsIndex });
 
                     if (data.deferIndexUpdate) {
@@ -1032,7 +1204,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         // the end of the run (see flushRootReadme above).
                         await markReadmeIndexDirty();
                     } else {
-                        await updateRootReadme(githubToken, owner, repo, branch, syncedProblemsIndex);
+                        await updateRootReadme(githubToken, owner, repo, branch);
                         // A live submission rewrites the whole index anyway, so
                         // it also settles whatever an interrupted import left behind.
                         await chrome.storage.local.set({ readmeIndexDirty: false });
@@ -1041,6 +1213,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 } catch (error) {
                     indexWarning = error.message || String(error);
                     console.warn(`AlgoPush: Solution saved, but the root README index was not updated for ${data.title}:`, error);
+                    // The alarm-driven flush retries it.
+                    await markReadmeIndexDirty().catch(() => {});
                 }
 
                 // 6. Save to sync history
@@ -1055,6 +1229,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 console.log(`AlgoPush: Successfully synced ${data.title}!`);
                 sendResponse({ ok: true, warning: indexWarning });
+
+                // 7. Tell friends, if the user has a profile. After the
+                // response, so the judge's page never waits on it; a bulk
+                // import uploads once at the end instead of per problem.
+                if (indexEntry) {
+                    if (data.deferIndexUpdate) {
+                        await markShareBehind().catch(() => {});
+                    } else {
+                        // Not awaited: the next push in the queue must not
+                        // wait on the friends service.
+                        // Checking the inbox straight after is what makes a
+                        // race win land as a notification within seconds.
+                        shareSubmission(indexKey, indexEntry).then(() => {
+                            enqueueSocialCatchUp();
+                            checkSocial();
+                        });
+                    }
+                }
+
+                // 8. A milestone this solve just reached. Live solves only: a
+                // bulk import is not one achievement per problem.
+                if (indexEntry && !data.deferIndexUpdate) {
+                    const { syncedProblemsIndex: latest = {} } = await chrome.storage.local.get('syncedProblemsIndex');
+                    const [reached] = await takeNewMilestones(latest);
+                    if (reached) notifyMilestone(reached);
+                }
 
             } catch (error) {
                 console.error("AlgoPush: Sync workflow failed", error);

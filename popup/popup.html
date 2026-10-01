@@ -22,6 +22,9 @@
         <symbol id="i-close" viewBox="0 0 16 16">
             <path d="m4 4 8 8M12 4l-8 8"/>
         </symbol>
+        <symbol id="i-down" viewBox="0 0 16 16">
+            <path d="M3.4 6.2 8 10.8l4.6-4.6"/>
+        </symbol>
     </svg>
 
     <div class="rail" aria-hidden="true"><span class="rail-fill" id="railFill"></span></div>
@@ -35,7 +38,8 @@
             </blockquote>
             <div class="entry-foot">
                 <p class="entry-promise">So AlgoPush shows it for you. Every Accepted submission,
-                    written to your own repository the moment the judge says so.</p>
+                    written to your own repository the moment the judge says so — and your friends
+                    see the streak you are keeping.</p>
                 <button class="btn btn--primary" id="beginBtn" type="button">Begin setup</button>
             </div>
         </div>
@@ -130,7 +134,28 @@
             <button class="btn btn--ghost" id="connectBackBtn" type="button">
                 <svg class="icon" aria-hidden="true"><use href="#i-back"/></svg>Back
             </button>
-            <button class="btn btn--primary" id="finishBtn" type="button">Open the board</button>
+            <button class="btn btn--primary" id="finishBtn" type="button">Continue</button>
+        </div>
+    </section>
+
+    <!-- ── OPTIONAL · PROFILE ────────────────────────────────────────── -->
+    <section class="screen" id="screenSocial" hidden>
+        <header class="step-head">
+            <h1 class="step-title">Bring your crew</h1>
+            <p class="step-note">Optional, and syncing does not depend on it. With a profile you
+                keep streaks going with friends, nudge each other, and settle it with duels. They
+                see your daily run and what you solved — titles and links, never your code. You
+                can set one up later from Settings.</p>
+            <p class="step-count"><span>Optional</span></p>
+        </header>
+
+        <div id="socialMount"></div>
+
+        <div class="step-actions">
+            <button class="btn btn--ghost" id="socialBackBtn" type="button">
+                <svg class="icon" aria-hidden="true"><use href="#i-back"/></svg>Back
+            </button>
+            <button class="btn btn--primary" id="socialDoneBtn" type="button">Skip — open the board</button>
         </div>
     </section>
 
@@ -138,15 +163,7 @@
     <section class="screen screen--board" id="screenBoard" hidden>
         <header class="board-head">
             <h1 class="wordmark">AlgoPush</h1>
-            <button class="iconbtn" id="settingsBtn" type="button" title="Settings" aria-label="Settings">
-                <svg class="icon" aria-hidden="true"><use href="#i-gear"/></svg>
-            </button>
         </header>
-
-        <p class="service" id="serviceLine">
-            <span class="mark" data-state="idle" id="serviceMark" aria-hidden="true"></span>
-            <span class="service-state" id="serviceState">Checking</span>
-        </p>
 
         <div class="alert" id="alert" hidden>
             <p class="alert-body" id="alertText"></p>
@@ -155,30 +172,252 @@
             </button>
         </div>
 
-        <div class="tally">
-            <p class="tally-count" id="tallyCount">0</p>
-            <p class="tally-label" id="tallyLabel">solutions on record</p>
+        <div class="tabs" role="tablist" aria-label="Board sections">
+            <button class="tab" type="button" role="tab" id="tabStats"
+                    aria-controls="panelStats" aria-selected="true">Stats</button>
+            <button class="tab" type="button" role="tab" id="tabCalendar"
+                    aria-controls="panelCalendar" aria-selected="false" tabindex="-1">Calendar</button>
+            <button class="tab" type="button" role="tab" id="tabFriends"
+                    aria-controls="panelFriends" aria-selected="false" tabindex="-1">Friends<span
+                    class="tab-count" id="friendsBadge" hidden></span></button>
+            <button class="tab" type="button" role="tab" id="tabDuels"
+                    aria-controls="panelDuels" aria-selected="false" tabindex="-1">Duels<span
+                    class="tab-count" id="duelsBadge" hidden></span></button>
+            <button class="tab" type="button" role="tab" id="tabSettings"
+                    aria-controls="panelSettings" aria-selected="false" tabindex="-1">Settings</button>
         </div>
 
-        <section class="block" id="runBlock">
-            <h2 class="block-title" id="runTitle">Daily run</h2>
-            <div class="pad" id="streakPad" role="img" aria-label="Solving activity, last 28 days"></div>
-        </section>
+        <!-- Stats ────────────────────────────────────────────────────── -->
+        <div class="panel-tab" id="panelStats" role="tabpanel" aria-labelledby="tabStats" tabindex="0">
+            <div class="tally">
+                <p class="tally-count" id="tallyCount">0</p>
+                <p class="tally-label" id="tallyLabel">solutions on record</p>
+            </div>
 
-        <section class="block" id="judgeBlock">
-            <h2 class="block-title">By judge</h2>
-            <ul class="tallylist" id="tallyList"></ul>
-        </section>
+            <dl class="facts">
+                <div><dt>Daily run</dt><dd id="factRun">—</dd></div>
+                <div><dt>Freezes</dt><dd id="factFreezes">0</dd></div>
+                <div><dt>Last 7 days</dt><dd id="factWeek">0</dd></div>
+            </dl>
+            <p class="block-note block-note--after" id="runNote"></p>
 
-        <section class="block" id="arrivalsBlock">
-            <h2 class="block-title" id="arrivalsTitle">Latest arrivals</h2>
-            <ul class="arrivals" id="arrivals"></ul>
-        </section>
+            <section class="block" id="milestoneBlock">
+                <h2 class="block-title">Milestones</h2>
+                <ul class="goals" id="goalList"></ul>
+                <p class="block-note block-note--after" id="earnedNote"></p>
+            </section>
 
-        <a class="repolink" id="repoLink" href="#" target="_blank" rel="noopener" hidden>
-            <span id="repoName"></span>
-            <svg class="icon" aria-hidden="true"><use href="#i-out"/></svg>
-        </a>
+            <section class="block">
+                <h2 class="block-title">In service</h2>
+                <ul class="servicelist" id="serviceList"></ul>
+            </section>
+        </div>
+
+        <!-- Calendar ─────────────────────────────────────────────────── -->
+        <div class="panel-tab" id="panelCalendar" role="tabpanel" aria-labelledby="tabCalendar" tabindex="0" hidden>
+            <section class="block">
+                <h2 class="block-title" id="runTitle">Daily run</h2>
+                <div class="pad" id="streakPad" role="img" aria-label="Solving activity, last 28 days"></div>
+            </section>
+
+            <section class="block">
+                <h2 class="block-title">Recent pushes</h2>
+                <ul class="arrivals" id="arrivals"></ul>
+            </section>
+        </div>
+
+        <!-- Friends ──────────────────────────────────────────────────── -->
+        <div class="panel-tab" id="panelFriends" role="tabpanel" aria-labelledby="tabFriends" tabindex="0" hidden>
+            <section class="block" id="friendsIntro" hidden>
+                <h2 class="block-title">Friends</h2>
+                <p class="block-note">Keep a streak going together, see who is on a run, and
+                    push each other with nudges and duels. Friends see each other's daily run and
+                    what was solved — titles and links, never code. It takes a profile, which is
+                    optional and tied to your GitHub account.</p>
+                <button class="btn btn--ghost btn--wide" id="friendsSetupBtn" type="button">Set up a profile</button>
+            </section>
+
+            <div id="friendsBoard" hidden>
+                <section class="block" id="leaderBlock" hidden>
+                    <h2 class="block-title block-title--split"><span>Week league</span><span class="block-title-meta" id="leagueEnds"></span></h2>
+                    <ol class="lboard" id="leaderList" aria-label="Solves this week, Monday to Sunday"></ol>
+                    <p class="block-note block-note--after" id="leaderNote"></p>
+                </section>
+
+                <section class="block" id="feedBlock" hidden>
+                    <h2 class="block-title">Crew lately</h2>
+                    <ul class="arrivals" id="feedList"></ul>
+                </section>
+
+                <section class="block" id="requestsBlock" hidden>
+                    <h2 class="block-title">Asking to be friends</h2>
+                    <ul class="plist" id="incomingList"></ul>
+                </section>
+
+                <section class="block">
+                    <h2 class="block-title" id="friendsTitle" tabindex="-1">Friends</h2>
+                    <ul class="plist" id="friendList"></ul>
+                    <p class="status" id="friendsStatus" role="status"></p>
+                </section>
+
+                <section class="block">
+                    <h2 class="block-title">Add a friend</h2>
+                    <form class="field-row" id="addFriendForm" novalidate>
+                        <input class="input" type="text" id="addFriendInput" placeholder="Their AlgoPush handle"
+                               aria-label="Friend's AlgoPush handle" spellcheck="false" autocomplete="off"
+                               maxlength="24">
+                        <button class="btn btn--ghost" id="addFriendBtn" type="submit">Send</button>
+                    </form>
+                    <p class="status" id="addFriendStatus" role="status"></p>
+                    <div class="invite-row">
+                        <p class="block-note" id="myHandleNote"></p>
+                        <button class="btn btn--ghost" id="copyInviteBtn" type="button">Copy invite</button>
+                    </div>
+                    <ul class="plist plist--quiet" id="outgoingList"></ul>
+                </section>
+            </div>
+        </div>
+
+        <!-- Duels ────────────────────────────────────────────────────── -->
+        <div class="panel-tab" id="panelDuels" role="tabpanel" aria-labelledby="tabDuels" tabindex="0" hidden>
+            <section class="block" id="duelsIntro" hidden>
+                <h2 class="block-title">Duels</h2>
+                <p class="block-note">Race a friend to the first Accepted on one problem, or see who
+                    solves more before the clock runs out. Scored from your synced solves — nothing
+                    to report by hand. Duels take a profile, which is optional.</p>
+                <button class="btn btn--ghost btn--wide" id="duelsSetupBtn" type="button">Set up a profile</button>
+            </section>
+
+            <div id="duelsBoard" hidden>
+                <dl class="facts facts--three facts--top" aria-label="Your duel record">
+                    <div><dt>Won</dt><dd id="duelWon">0</dd></div>
+                    <div><dt>Lost</dt><dd id="duelLost">0</dd></div>
+                    <div><dt>Drawn</dt><dd id="duelDrawn">0</dd></div>
+                </dl>
+                <p class="status" id="duelsStatus" role="status"></p>
+
+                <section class="block" id="invitesBlock" hidden>
+                    <h2 class="block-title">Challenges for you</h2>
+                    <ul class="plist" id="inviteList"></ul>
+                </section>
+
+                <section class="block" id="activeBlock" hidden>
+                    <h2 class="block-title" id="activeTitle" tabindex="-1">In progress</h2>
+                    <ul class="plist" id="activeList"></ul>
+                </section>
+
+                <section class="block" id="duelNew">
+                    <h2 class="block-title">New challenge</h2>
+                    <p class="block-note" id="duelNoFriends" hidden></p>
+                    <form id="duelForm" novalidate>
+                        <div id="duelFormFields">
+                            <div class="field field--first">
+                                <label class="field-label" for="duelFriend">Opponent</label>
+                                <select class="select" id="duelFriend"></select>
+                            </div>
+
+                            <p class="field-label field-label--above" aria-hidden="true">Kind</p>
+                            <fieldset class="lines">
+                                <legend class="sr-only">Duel kind</legend>
+                                <label class="line">
+                                    <input type="radio" name="duelKind" value="sprint" checked>
+                                    <span class="line-name">Sprint</span>
+                                    <span class="line-origin">most solves wins</span>
+                                    <span class="tick"></span>
+                                </label>
+                                <label class="line">
+                                    <input type="radio" name="duelKind" value="race">
+                                    <span class="line-name">Race</span>
+                                    <span class="line-origin">first Accepted wins</span>
+                                    <span class="tick"></span>
+                                </label>
+                            </fieldset>
+
+                            <div class="field" id="duelProblemField" hidden>
+                                <label class="field-label" for="duelProblem">Problem link</label>
+                                <input class="input" type="url" id="duelProblem" spellcheck="false" autocomplete="off"
+                                       placeholder="https://leetcode.com/problems/…" aria-describedby="duelProblemNote">
+                                <p class="field-note" id="duelProblemNote">Paste a problem link from LeetCode, Codeforces, AtCoder or CodeChef.</p>
+                            </div>
+
+                            <div class="field">
+                                <label class="field-label" for="duelHours">Time limit</label>
+                                <select class="select" id="duelHours"></select>
+                            </div>
+
+                            <button class="btn btn--primary btn--wide btn--gap" id="duelSendBtn" type="submit">Send challenge</button>
+                            <p class="status" id="duelFormStatus" role="status"></p>
+                        </div>
+                    </form>
+                    <ul class="plist plist--quiet" id="waitingList"></ul>
+                </section>
+
+                <section class="block" id="resultsBlock" hidden>
+                    <h2 class="block-title">Recent results</h2>
+                    <ul class="plist" id="resultList"></ul>
+                </section>
+            </div>
+        </div>
+
+        <!-- Settings ─────────────────────────────────────────────────── -->
+        <div class="panel-tab" id="panelSettings" role="tabpanel" aria-labelledby="tabSettings" tabindex="0" hidden>
+            <section class="block">
+                <h2 class="block-title">GitHub</h2>
+
+                <div class="idrow" id="setGhRow" hidden>
+                    <img class="idrow-avatar" id="setGhAvatar" src="../images/icon128.png" alt="">
+                    <div class="idrow-text">
+                        <p class="idrow-name" id="setGhLogin"></p>
+                        <p class="idrow-meta">Connected via GitHub App</p>
+                    </div>
+                    <button class="btn btn--ghost" id="setGhDisconnect" type="button">Disconnect</button>
+                </div>
+
+                <div class="field" id="setRepoField" hidden>
+                    <label class="field-label" for="setRepoSelect">Destination repository</label>
+                    <select class="select" id="setRepoSelect"></select>
+                </div>
+
+                <p class="status" id="setGhStatus" role="status"></p>
+
+                <a class="repolink" id="repoLink" href="#" target="_blank" rel="noopener" hidden>
+                    <span>Open repository on GitHub</span>
+                    <svg class="icon" aria-hidden="true"><use href="#i-out"/></svg>
+                </a>
+            </section>
+
+            <section class="block" id="profileBlock">
+                <h2 class="block-title">Profile</h2>
+                <div id="profileMount"></div>
+            </section>
+
+            <section class="block">
+                <h2 class="block-title">Reminders</h2>
+                <label class="line line--toggle line--flush">
+                    <input type="checkbox" id="reminderToggle">
+                    <span class="line-name">Warn me at 8 pm when my run is at risk</span>
+                    <span class="tick"></span>
+                </label>
+                <p class="field-note">One notification, only on days with a run going and nothing solved yet.
+                    Friend requests, nudges and duel results notify you once you have a profile.</p>
+            </section>
+
+            <section class="block">
+                <h2 class="block-title">Import past solutions</h2>
+                <p class="block-note">Each import reads your own signed-in session and skips
+                    anything already pushed. Import opens the full settings page and runs there,
+                    so it keeps going after this panel closes.</p>
+                <ul class="importlist" id="importList"></ul>
+            </section>
+
+            <section class="block">
+                <h2 class="block-title">Everything else</h2>
+                <button class="btn btn--ghost btn--wide" id="openOptionsBtn" type="button">
+                    Open the full settings page
+                    <svg class="icon" aria-hidden="true"><use href="#i-out"/></svg>
+                </button>
+            </section>
+        </div>
     </section>
 
     <script type="module" src="popup.js"></script>

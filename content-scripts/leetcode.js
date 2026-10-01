@@ -115,7 +115,7 @@ async function getLeetCodeQuestions() {
     throw new LeetCodeRequestError('LeetCode would not return your solved problems.');
 }
 
-const SUBMISSION_LIST_QUERY = `query submissions($offset: Int!, $limit: Int!, $lastKey: String, $questionSlug: String!) { submissionList(offset: $offset, limit: $limit, lastKey: $lastKey, questionSlug: $questionSlug) { submissions { id statusDisplay } } }`;
+const SUBMISSION_LIST_QUERY = `query submissions($offset: Int!, $limit: Int!, $lastKey: String, $questionSlug: String!) { submissionList(offset: $offset, limit: $limit, lastKey: $lastKey, questionSlug: $questionSlug) { submissions { id statusDisplay timestamp } } }`;
 const SUBMISSION_DETAIL_QUERY = `query submissionDetails($submissionId: Int!) { submissionDetails(submissionId: $submissionId) { code lang { name } } }`;
 
 /**
@@ -150,7 +150,10 @@ async function getLeetCodeSubmission(question) {
                 difficulty: question.difficulty || 'Unknown',
                 tags: (question.topicTags || []).map(tag => tag.name),
                 code,
-                language: detail.submissionDetails.lang?.name || 'Unknown'
+                language: detail.submissionDetails.lang?.name || 'Unknown',
+                // Seconds, as a string. Dates the import on the day it was
+                // actually solved rather than the day it was imported.
+                judgedAt: Number(accepted.timestamp) > 0 ? Number(accepted.timestamp) * 1000 : null
             }
         };
     } catch (error) {
@@ -261,32 +264,78 @@ script.onload = function() {
 (document.head || document.documentElement).appendChild(script);
 
 // 2. Listen for messages from the injected script
-window.addEventListener('message', async (event) => {
-    // Same window, same origin, and our specific type. The origin check
+window.addEventListener('message', (event) => {
+    // Same window, same origin, and our specific types. The origin check
     // matters: whatever arrives here is turned into a commit in the user's
     // repository, so an unchecked listener lets anything that can post a
     // message on this page choose the file contents.
-    if (event.source !== window || event.origin !== window.location.origin) {
-        return;
-    }
-    if (!event.data || event.data.type !== 'LEETCODE_SUBMISSION_ACCEPTED') {
-        return;
-    }
+    if (event.source !== window || event.origin !== window.location.origin) return;
+    const data = event.data;
+    if (!data || typeof data.submissionId !== 'string') return;
 
-    const { submissionId, code, lang } = event.data;
+    if (data.type === 'LEETCODE_SUBMISSION_ACCEPTED') {
+        pushAccepted({ submissionId: data.submissionId, code: data.code, lang: data.lang });
+    } else if (data.type === 'LEETCODE_SUBMITTED') {
+        confirmViaGraphQL(data.submissionId, data.code, data.lang);
+    }
+});
 
-    // Avoid duplicate processing for the same submission ID in a single session
-    if (processedSubmissions.has(submissionId)) {
+/**
+ * Asks LeetCode for the verdict of a submission this page just made, and
+ * pushes it if it was Accepted. This is the path that does not depend on
+ * how the page polls for results (see leetcode-inject.js), and it reads the
+ * source and the judge's timestamp from LeetCode itself.
+ */
+const SUBMISSION_VERDICT_QUERY = `query submissionDetails($submissionId: Int!) { submissionDetails(submissionId: $submissionId) { code timestamp statusCode lang { name } question { titleSlug } } }`;
+const ACCEPTED_STATUS_CODE = 10;
+const VERDICT_POLL_MS = 2000;
+// Judging normally takes seconds; a long queue in a contest can take a minute.
+const VERDICT_POLL_LIMIT = 45;
+
+async function confirmViaGraphQL(submissionId, code, lang) {
+    for (let attempt = 0; attempt < VERDICT_POLL_LIMIT; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, VERDICT_POLL_MS));
+        // The page's own result poll may have settled it already.
+        if (processedSubmissions.has(submissionId)) return;
+
+        let details = null;
+        try {
+            const data = await leetGraphQL(SUBMISSION_VERDICT_QUERY, { submissionId: Number(submissionId) }, 'submissionDetails');
+            details = data.submissionDetails;
+        } catch (error) {
+            if (!error.retryable) {
+                console.warn('AlgoPush: could not confirm a LeetCode verdict.', error);
+                return;
+            }
+            continue;
+        }
+
+        // Nothing stored yet while it is still being judged.
+        if (!details || details.statusCode === null || details.statusCode === undefined) continue;
+        if (Number(details.statusCode) !== ACCEPTED_STATUS_CODE) return;
+
+        await pushAccepted({
+            submissionId,
+            code: details.code || code,
+            lang: (details.lang && details.lang.name) || lang,
+            slug: details.question && details.question.titleSlug,
+            judgedAt: Number(details.timestamp) > 0 ? Number(details.timestamp) * 1000 : null
+        });
         return;
     }
+}
+
+async function pushAccepted({ submissionId, code, lang, slug: knownSlug, judgedAt = null }) {
+    // Both signals can arrive for one submission; the first one wins.
+    if (processedSubmissions.has(submissionId)) return;
+    if (!code) return;
     processedSubmissions.add(submissionId);
-    
+
     console.log("AlgoPush: Detected accepted submission!", submissionId);
 
     // 3. Extract problem details via GraphQL to ensure reliability against DOM changes
-    const pathname = window.location.pathname;
-    const slugMatch = pathname.match(/\/problems\/([^/]+)/);
-    const slug = slugMatch ? slugMatch[1] : 'unknown';
+    const slugMatch = window.location.pathname.match(/\/problems\/([^/]+)/);
+    const slug = knownSlug || (slugMatch ? slugMatch[1] : 'unknown');
 
     const details = await fetchProblemDetails(slug);
 
@@ -299,7 +348,8 @@ window.addEventListener('message', async (event) => {
         difficulty: details.difficulty || 'Unknown',
         tags: details.tags || [],
         code: code,
-        language: lang
+        language: lang,
+        judgedAt
     };
 
     // 4. Send the extracted data to the background script.
@@ -319,10 +369,11 @@ window.addEventListener('message', async (event) => {
 
     if (!syncResult || !syncResult.ok) {
         console.error('AlgoPush: GitHub sync failed:', syncResult && syncResult.error);
-        processedSubmissions.delete(submissionId);
+        // Stays marked as handled: the retry queue owns it from here, and the
+        // other detection path must not push it a second time.
         await queuePendingSubmission(submission);
     }
-});
+}
 
 /* ------------------------------------------------------------------ *
  * Retry queue

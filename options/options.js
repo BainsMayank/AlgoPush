@@ -6,6 +6,7 @@ import { loginWithCodeChef } from '../shared/codechef-auth.js';
 import { getAtCoderCatalog, describeProblem, atcoderSlug, AC_SUBMISSIONS_URL } from '../shared/atcoder-catalog.js';
 import { startDeviceFlow, pollForGitHubToken, fetchGitHubIdentity, listInstalledRepositories, createRepository, getPrimaryInstallation, DEFAULT_GITHUB_APP_CLIENT_ID } from '../shared/github-oauth.js';
 import { getEffectiveGithubToken } from '../shared/github-auth.js';
+import { resumeProfile } from '../shared/social.js';
 import { sleep, waitForTabComplete, sendToTab } from '../shared/tab-rpc.js';
 
 // The selected repo lives in chrome.storage.local (key: githubRepo) as the
@@ -405,6 +406,14 @@ async function onConnectGithub() {
             showStatus('ghConnectStatus', `Connected as ${profile.login}, but the AlgoPush GitHub App isn't installed on any repo yet — install it (choose "All repositories") from your GitHub App settings, then reconnect.`, 'error');
         } else {
             showStatus('ghConnectStatus', `Connected as ${profile.login}.`, 'success');
+            // A reinstall lands here first. If this GitHub account already
+            // has a profile, take it back, and read the repository's existing
+            // solution index back into this install.
+            const back = await resumeProfile();
+            chrome.runtime.sendMessage({ type: 'RESTORE_INDEX' }).catch(() => {});
+            if (back) {
+                showStatus('ghConnectStatus', `Connected as ${profile.login}. Welcome back, @${back.handle} — your friends and streaks are back, and your solved history is being restored.`, 'success');
+            }
         }
     } catch (e) {
         devicePanel.style.display = 'none';
@@ -1087,7 +1096,8 @@ const codeforcesImport = {
                 difficulty: problem.rating ? problem.rating.toString() : 'Unknown',
                 tags: problem.tags || [],
                 code: result.code,
-                language: entry.sub.programmingLanguage
+                language: entry.sub.programmingLanguage,
+                judgedAt: entry.sub.creationTimeSeconds ? entry.sub.creationTimeSeconds * 1000 : null
             }
         };
     }
@@ -1336,7 +1346,8 @@ const atcoderImport = {
                 difficulty: 'Unknown',
                 tags: [],
                 code: result.code,
-                language: submission.language || result.language || 'Unknown'
+                language: submission.language || result.language || 'Unknown',
+                judgedAt: submission.epoch_second ? submission.epoch_second * 1000 : null
             }
         };
     }
@@ -1577,6 +1588,30 @@ document.getElementById('syncHistoryBtn').addEventListener('click', () => runHis
 document.getElementById('syncLeetCodeHistoryBtn').addEventListener('click', () => runHistoricalImport(leetcodeImport));
 document.getElementById('syncAtCoderHistoryBtn').addEventListener('click', () => runHistoricalImport(atcoderImport));
 document.getElementById('syncCodeChefHistoryBtn').addEventListener('click', () => runHistoricalImport(codechefImport));
+
+// The popup's Settings tab lists the imports but cannot run one: the loop lives
+// on this page and would die the moment the popup closed. Its Import button
+// leaves a note here instead, so the run lands on the right control rather than
+// at the top of the page. It scrolls and focuses; starting is still the user's
+// click, because an import is long and expensive.
+(async () => {
+    const { pendingImport } = await chrome.storage.local.get('pendingImport');
+    if (!pendingImport) return;
+    await chrome.storage.local.remove('pendingImport');
+
+    const buttonId = {
+        codeforces: 'syncHistoryBtn',
+        leetcode: 'syncLeetCodeHistoryBtn',
+        atcoder: 'syncAtCoderHistoryBtn',
+        codechef: 'syncCodeChefHistoryBtn'
+    }[pendingImport];
+
+    const button = buttonId && document.getElementById(buttonId);
+    if (!button) return;
+
+    button.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    button.focus({ preventScroll: true });
+})();
 
 function showStatus(elementId, message, type) {
     const el = document.getElementById(elementId);

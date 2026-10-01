@@ -23,7 +23,8 @@ async function sendAcceptedSubmission(sub, code) {
         difficulty: problem.rating ? problem.rating.toString() : 'Unknown',
         tags: problem.tags || [],
         code,
-        language: sub.programmingLanguage
+        language: sub.programmingLanguage,
+        judgedAt: sub.creationTimeSeconds ? sub.creationTimeSeconds * 1000 : null
     });
 }
 
@@ -37,21 +38,13 @@ async function sendAcceptedSubmission(sub, code) {
  * likely NOT you, and would poll/sync under the wrong account.
  */
 function getHandle() {
-    // The handle is typically in a profile link in the header: <a href="/profile/myhandle">myhandle</a>
-    const profileLinks = document.querySelectorAll('a[href*="/profile/"]');
-    for (let link of profileLinks) {
-        try {
-            const url = new URL(link.href);
-            const match = url.pathname.match(/^\/profile\/([^/]+)$/);
-            // Ensure it's not a general link like /profile/settings
-            if (match && match[1] !== 'settings') {
-                return match[1];
-            }
-        } catch (e) {
-            // Ignore invalid URLs
-        }
-    }
-    return null;
+    // The signed-in header reads "<handle> | Logout" inside .lang-chooser;
+    // signed out it reads "Enter | Register" and holds no profile link at
+    // all, which is exactly when a page-wide search used to fall through to
+    // a stranger in the status table below it.
+    const link = document.querySelector('#header .lang-chooser a[href^="/profile/"], .lang-chooser a[href^="/profile/"]');
+    const match = link && link.getAttribute('href').match(/^\/profile\/([^/?#]+)$/);
+    return match ? decodeURIComponent(match[1]) : null;
 }
 
 /* ------------------------------------------------------------------ *
@@ -352,7 +345,8 @@ async function drainPendingSubmissions() {
                 difficulty: item.difficulty,
                 tags: item.tags || [],
                 code: result.code,
-                language: item.programmingLanguage
+                language: item.programmingLanguage,
+                judgedAt: item.judgedAt || null
             });
 
             if (!syncResult || !syncResult.ok) {
@@ -447,8 +441,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 /**
  * Initializes the polling mechanism if we are on a relevant page.
  */
-function startPolling() {
+async function startPolling() {
     currentHandle = getHandle();
+
+    // With an account connected, only that account is ever synced: a browser
+    // signed in to someone else's Codeforces must not push their solutions
+    // into this repository.
+    const { cfOauthProfile } = await chrome.storage.local.get('cfOauthProfile');
+    const connected = cfOauthProfile && cfOauthProfile.handle;
+    if (currentHandle && connected && currentHandle.toLowerCase() !== connected.toLowerCase()) {
+        console.log(`AlgoPush: this browser is signed in to Codeforces as ${currentHandle}, but AlgoPush is connected to ${connected} — live sync is paused.`);
+        return;
+    }
 
     if (currentHandle) {
         console.log("AlgoPush: Found Codeforces handle:", currentHandle);

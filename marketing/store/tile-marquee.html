@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AlgoPush — marquee promo tile</title>
+<link rel="stylesheet" href="store.css">
+<style>
+    .sheet {
+        width: 1400px;
+        height: 560px;
+        padding: 42px 80px 36px 128px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .rail { left: 80px; }
+
+    .head { display: flex; align-items: center; gap: 13px; }
+    .mark { display: block; width: 24px; height: 24px; }
+    .head .meta { margin-left: 4px; }
+    .head-rule { margin-top: 18px; }
+
+    .body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 72px;
+        min-height: 0;
+    }
+
+    .copy { flex: 1; min-width: 0; }
+    .copy .eyebrow { display: block; margin-bottom: 18px; }
+    .copy .headline { font-size: 56px; margin-bottom: 20px; max-width: 680px; }
+    .copy .sub { font-size: 17px; max-width: 600px; }
+    .copy .facts { margin-top: 32px; gap: 24px; max-width: 700px; }
+
+    .stage { flex: none; width: 300px; display: flex; justify-content: flex-end; }
+    .stage .frame { width: 300px; }
+
+    .foot { display: flex; align-items: center; gap: 24px; }
+    .foot .hr { flex: 1; }
+</style>
+</head>
+<body>
+<div class="sheet">
+    <span class="rail"></span>
+
+    <header class="head">
+        <svg class="mark" viewBox="0 0 128 128" aria-hidden="true">
+            <path d="M64 18 94 60 74 60 74 92 54 92 54 60 34 60 Z" fill="#F4F1EA"/>
+            <rect x="34" y="102" width="60" height="10" fill="#FF5436"/>
+        </svg>
+        <span class="wordmark">AlgoPush</span>
+        <span class="meta">for Chrome</span>
+    </header>
+    <div class="hr head-rule"></div>
+
+    <div class="body">
+        <div class="copy">
+            <span class="eyebrow">Automatic sync</span>
+            <h1 class="headline">Your practice deserves a permanent record.</h1>
+            <p class="sub">Every Accepted submission on LeetCode, Codeforces, AtCoder and CodeChef,
+                committed to a GitHub repository you own — the moment the judge accepts it.</p>
+            <ul class="facts">
+                <li><dt>Setup</dt><dd>Three steps, once</dd></li>
+                <li><dt>After that</dt><dd>Nothing to do</dd></li>
+                <li><dt>Already solved a few hundred?</dt><dd>Import backfills them</dd></li>
+            </ul>
+        </div>
+
+        <div class="stage">
+            <div class="frame"><img src="../shots/popup-stats.png" alt=""></div>
+        </div>
+    </div>
+
+    <footer class="foot">
+        <div class="chips">
+            <span class="chip chip--lc">LC</span>
+            <span class="chip chip--cf">CF</span>
+            <span class="chip chip--ac">AC</span>
+            <span class="chip chip--cc">CC</span>
+        </div>
+        <div class="hr"></div>
+        <span class="caption">Your repository, on your own GitHub account</span>
+    </footer>
+</div>
+</body>
+</html>

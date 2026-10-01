@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AlgoPush — store screenshot</title>
+<link rel="stylesheet" href="store.css">
+<style>
+    .sheet {
+        width: 1280px;
+        height: 800px;
+        padding: 54px 72px 46px 120px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .rail { left: 72px; }
+
+    .head { display: flex; align-items: baseline; justify-content: space-between; }
+    .head .hr { margin-top: 20px; }
+
+    .body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 56px;
+        position: relative;
+        z-index: 1;
+        min-height: 0;
+    }
+
+    .copy { width: 592px; flex: none; }
+    .copy .eyebrow { display: block; margin-bottom: 20px; }
+    .copy .headline { font-size: 60px; margin-bottom: 26px; }
+    .copy .sub { font-size: 17.5px; max-width: 540px; }
+    .copy .facts { margin-top: 38px; gap: 26px; }
+
+    .stage { flex: 1; display: flex; justify-content: flex-end; min-width: 0; }
+    .stage .frame { width: 396px; }
+
+    .foot { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .foot .hr { flex: 1; }
+
+    /* ── Repository listing ─────────────────────────────────────────── */
+    .tree { width: 100%; max-width: 452px; border-top: 1px solid var(--rule); }
+    .tree-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 38px;
+        border-bottom: 1px solid var(--rule);
+        font-size: 14px;
+        font-weight: 400;
+        font-variation-settings: 'wdth' 100, 'wght' 400;
+        color: var(--board-2);
+    }
+    .tree-row[data-kind="root"],
+    .tree-row[data-kind="dir"] {
+        font-weight: 600;
+        font-variation-settings: 'wdth' 100, 'wght' 600;
+        color: var(--board);
+    }
+    .tree-name { white-space: nowrap; }
+    .tree-note {
+        margin-left: auto;
+        font-size: 10.5px;
+        font-weight: 600;
+        font-variation-settings: 'wdth' 78, 'wght' 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--board-3);
+    }
+    .tree-tag {
+        display: grid;
+        place-items: center;
+        width: 25px;
+        height: 17px;
+        font-size: 9.5px;
+        font-weight: 700;
+        font-variation-settings: 'wdth' 84, 'wght' 700;
+        color: var(--ink);
+    }
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet">
+    <span class="rail"></span>
+    <span class="plate" id="plate"></span>
+
+    <header class="head">
+        <div style="display:flex; align-items:baseline; gap:14px;">
+            <span class="wordmark">AlgoPush</span>
+            <span class="meta">for Chrome</span>
+        </div>
+        <span class="meta" id="headMeta">Syncs to GitHub</span>
+        <div class="hr" style="position:absolute; left:120px; right:72px; top:96px;"></div>
+    </header>
+
+    <div class="body">
+        <div class="copy">
+            <span class="eyebrow" id="eyebrow"></span>
+            <h1 class="headline" id="headline"></h1>
+            <p class="sub" id="sub"></p>
+            <ul class="facts" id="facts" hidden></ul>
+        </div>
+        <div class="stage" id="stage"></div>
+    </div>
+
+    <footer class="foot">
+        <div class="chips" id="chips" hidden>
+            <span class="chip chip--lc">LC</span>
+            <span class="chip chip--cf">CF</span>
+            <span class="chip chip--ac">AC</span>
+            <span class="chip chip--cc">CC</span>
+        </div>
+        <div class="hr"></div>
+        <span class="caption" id="caption"></span>
+    </footer>
+</div>
+
+<script type="module">
+import { SCREENSHOTS, TREE } from './copy.mjs';
+
+const item = SCREENSHOTS[Number(new URLSearchParams(location.search).get('n') || 1) - 1];
+
+document.getElementById('plate').innerHTML = `<b>${item.plate}</b> / 05`;
+document.getElementById('eyebrow').textContent = item.eyebrow;
+document.getElementById('headline').textContent = item.headline;
+document.getElementById('sub').textContent = item.sub;
+document.getElementById('caption').textContent = item.caption;
+
+if (item.facts) {
+    const list = document.getElementById('facts');
+    list.hidden = false;
+    for (const [term, detail] of item.facts) {
+        const li = document.createElement('li');
+        li.innerHTML = `<dt>${term}</dt><dd>${detail}</dd>`;
+        list.appendChild(li);
+    }
+}
+
+if (item.chips) document.getElementById('chips').hidden = false;
+
+const stage = document.getElementById('stage');
+
+if (item.tree) {
+    const tree = document.createElement('div');
+    tree.className = 'tree';
+    for (const node of TREE) {
+        const row = document.createElement('div');
+        row.className = 'tree-row';
+        if (node.kind) row.dataset.kind = node.kind;
+        row.style.paddingLeft = `${node.depth * 20}px`;
+
+        if (node.tag) {
+            const tag = document.createElement('span');
+            tag.className = `tree-tag chip--${node.tag.toLowerCase()}`;
+            tag.textContent = node.tag;
+            row.appendChild(tag);
+        }
+
+        const name = document.createElement('span');
+        name.className = 'tree-name';
+        name.textContent = node.name;
+        row.appendChild(name);
+
+        if (node.note) {
+            const note = document.createElement('span');
+            note.className = 'tree-note';
+            note.textContent = node.note;
+            row.appendChild(note);
+        }
+        tree.appendChild(row);
+    }
+    stage.appendChild(tree);
+} else {
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+    // A crop height, where set, ends the capture on one of the popup's own
+    // hairlines instead of through the middle of a row.
+    if (item.cropTo) {
+        frame.classList.add('frame--crop');
+        frame.style.height = `${Math.round(item.cropTo / 3)}px`;
+    }
+    const img = document.createElement('img');
+    img.src = `../shots/${item.shot}`;
+    frame.appendChild(img);
+    stage.appendChild(frame);
+}
+</script>
+</body>
+</html>

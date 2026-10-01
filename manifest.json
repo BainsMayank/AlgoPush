@@ -1,10 +1,13 @@
 {
   "manifest_version": 3,
   "name": "AlgoPush",
-  "version": "1.5.0",
-  "description": "Automatically sync your Accepted LeetCode, Codeforces, AtCoder and CodeChef submissions to GitHub, organized by platform and difficulty.",
+  "version": "2.0.0",
+  "description": "Pushes every Accepted LeetCode, Codeforces, AtCoder and CodeChef solve to GitHub, and keeps streaks and duels going with friends.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1tpNpGPBiNL6ndXdhROvfPskacCg7aVecWfBBefElNxc1bNEF8mtXvscBRyreEUWrlTxTq4GK3IiCXMDDS5cfgjbgbZ2SVbEm+cWzU2qClWDLbT23xM6WLbJXcqH+hqL5mq6Rkcvi8SHRBCPJYRGSVjezqwpK8AGFjYBkv3vqDlvhz0+OLJ3otzryinT41PRKZPaUrlZgyPvQ1Zo3eT+bXYfdr7Y95qTVqQKqzisTMEdtfqBpmQTpo0+SrV37he+qOgSiuV4W+lpum5n1SnrFAprS2Qk2MeZ+uY3+ntvpC/sssBYKOkNRIDdYcb4Iwnsy5XmbFDWjM8YKWFV/QV90wIDAQAB",
   "icons": {
+    "16": "images/icon16.png",
+    "32": "images/icon32.png",
+    "48": "images/icon48.png",
     "128": "images/icon128.png"
   },
   "permissions": [

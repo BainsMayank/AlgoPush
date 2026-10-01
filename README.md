@@ -14,6 +14,7 @@ and difficulty, with a generated index.
 | `shared/` | ES modules used by the service worker, options page and popup. |
 | `options/`, `popup/` | Extension UI. |
 | `oauth-backend/` | Cloudflare Worker for the Codeforces OIDC code exchange. **Not part of the extension bundle.** |
+| `social-backend/` | Cloudflare Worker + D1 for the optional profiles and Friends tab. **Not part of the extension bundle.** |
 | `scripts/pack.sh` | Builds the Web Store zip from an allowlist. |
 
 ## Building the extension zip
@@ -31,7 +32,9 @@ state. It also refuses to package a placeholder icon.
 ## Backend
 
 See [oauth-backend/README.md](oauth-backend/README.md) for deploying the
-Codeforces exchange Worker and `npm test` for its security test suite.
+Codeforces exchange Worker and `npm test` for its security test suite, and
+[social-backend/README.md](social-backend/README.md) for the optional profiles
+and friends Worker. Syncing works without either profile or friends backend.
 
 ## Why each platform works differently
 

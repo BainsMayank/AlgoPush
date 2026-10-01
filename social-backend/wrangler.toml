@@ -1,0 +1,24 @@
+name = "algopush-social"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Profiles, sessions, friendships and shared solves. Create the database once,
+# paste the id wrangler prints, then apply the schema:
+#
+#   npx wrangler d1 create algopush-social
+#   npx wrangler d1 migrations apply algopush-social --remote
+#
+[[d1_databases]]
+binding = "DB"
+database_name = "algopush-social"
+database_id = "143e92ea-b640-451a-9270-d6d2b672d1b2"
+migrations_dir = "migrations"
+
+# Optional but recommended — see oauth-backend/wrangler.toml for why.
+#
+# [[kv_namespaces]]
+# binding = "RATE_LIMIT_KV"
+# id = "<paste the id wrangler prints>"
+
+[observability]
+enabled = true

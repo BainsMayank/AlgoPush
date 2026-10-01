@@ -273,6 +273,15 @@ function getContestIdFromPage() {
     return match ? match[1] : null;
 }
 
+// AtCoder prints submission times as "2026-09-30 21:34:56+0900". Normalised
+// to ISO so the parse does not depend on the browser's leniency.
+function parseSubmittedAt(text) {
+    const match = String(text || '').match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})([+-]\d{2}):?(\d{2})$/);
+    if (!match) return null;
+    const ms = Date.parse(`${match[1]}T${match[2]}${match[3]}:${match[4]}`);
+    return Number.isFinite(ms) ? ms : null;
+}
+
 async function sendAcceptedSubmission(row, code, language) {
     return chrome.runtime.sendMessage({
         type: 'SUBMISSION_ACCEPTED',
@@ -288,7 +297,8 @@ async function sendAcceptedSubmission(row, code, language) {
         difficulty: 'Unknown',
         tags: [],
         code,
-        language: language || row.language || 'Unknown'
+        language: language || row.language || 'Unknown',
+        judgedAt: parseSubmittedAt(row.submittedAt)
     });
 }
 
